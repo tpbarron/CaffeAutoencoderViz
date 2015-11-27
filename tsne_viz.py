@@ -2,7 +2,6 @@
 import os, sys, math, cPickle, colorsys
 import caffe
 import numpy as np
-from operator import itemgetter
 from sklearn.neighbors import NearestNeighbors
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
@@ -90,7 +89,7 @@ def getColors(num_colors):
     return colors
 
 
-def plotTSNE(embedding, lex, words, threshold=50, nodes=None, labels=True):
+def plotTSNE(embedding, lex, words, threshold=50, nodes=None, labels=True, colorBasedOn='hidden'):
     print ("Plotting t-SNE")
     fig, axes = plt.subplots()
     axes.clear()
@@ -107,8 +106,12 @@ def plotTSNE(embedding, lex, words, threshold=50, nodes=None, labels=True):
         listToIterate = range(len(words))
 
     colorMap = {}    
-    colorChoices = getColors(len(listToIterate))
-    
+    colorChoices = None
+    if (colorBasedOn == 'hidden'):
+        colorChoices = getColors(len(listToIterate))
+    else:
+        colorChoices = getColors(min(threshold, len(words[0])))
+
     # count total number of colored points
     c = 0
     for i in range(len(listToIterate)):
@@ -118,9 +121,10 @@ def plotTSNE(embedding, lex, words, threshold=50, nodes=None, labels=True):
             inNode = j
             # get the words[hidden node][input node][index]
             if (not words[hidNode][inNode][0] in colorMap):
-#                print "dup"
-                colorMap[words[hidNode][inNode][0]] = colorChoices[i] # % len(colorChoices)]
-                #print ("setting colormap[" + str(words[hidNode][inNode][0]) + "] to have color : " + str(colorChoices[i]))
+                if (colorBasedOn == 'hidden'):
+                    colorMap[words[hidNode][inNode][0]] = colorChoices[i] # % len(colorChoices)]
+                else:
+                    colorMap[words[hidNode][inNode][0]] = colorChoices[j] # % len(colorChoices)]
                 c += 1
     
 
@@ -277,6 +281,8 @@ if __name__ == "__main__":
             wordsOut.close()
 
 
+    findOptimalNode(net, maxActivations)
+
     # let the user view the visualization
     while True:
         thresh = int(raw_input("Threshold: "))
@@ -306,7 +312,7 @@ if __name__ == "__main__":
             show2ndPlot = True if (raw_input("Show 2nd layer plot of node " + str(n) + "? y/n ") == "y") else False
             layer = 1
             if (show2ndPlot):
-                plotTSNE(embeddings[layer], lex, words[layer], thresh, [n], labels)
+                plotTSNE(embeddings[layer], lex, words[layer], thresh, [n], labels, 'input')
 
     #findNearestNeighbors(lex)
     
